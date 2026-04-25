@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>FIRE Calculator — KashVector</title>
+  <meta name="description" content="Find your Financial Independence number, time to retire, and Coast FIRE target using the 4% rule.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <a href="../" class="home-logo" aria-label="KashVector home">
+      <img src="../logo.svg" alt="KashVector" width="32" height="32">
+    </a>
+    <h1><img src="../fire.png" alt="" width="32" height="32" style="vertical-align:middle;margin-right:8px;border-radius:6px"> FIRE Calculator</h1>
+    <p>Find your Financial Independence number, time to retire, and Coast FIRE target.</p>
+  </header>
+
+  <main>
+
+    <div class="layout">
+
+      <!-- ── Input panel ── -->
+      <aside class="input-panel">
+
+        <div class="input-group">
+          <h3 class="group-title">Your Situation</h3>
+
+          <div class="field">
+            <label for="portfolio">
+              Total invested assets
+              <span class="tip" data-tip="All savings and investments, including super. This is your starting point.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="portfolio" type="text" inputmode="numeric" class="money-input" placeholder="0">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="expenses">
+              Annual expenses in retirement
+              <span class="tip" data-tip="How much you need to live on per year once you stop working. Your FIRE Number = this ÷ SWR.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="expenses" type="text" inputmode="numeric" class="money-input" placeholder="60,000">
+            </div>
+            <div class="derived" id="fireNumberDerived"></div>
+          </div>
+
+          <div class="field">
+            <label for="savings">
+              Annual savings / contributions
+              <span class="tip" data-tip="Total amount added to your investments each year — including employer super contributions.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="savings" type="text" inputmode="numeric" class="money-input" placeholder="25,000">
+            </div>
+            <div class="derived" id="savingsHint"></div>
+          </div>
+
+          <div class="field">
+            <label for="age">Current age</label>
+            <input id="age" type="number" min="18" max="80" step="1" class="num-input">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <h3 class="group-title">Assumptions</h3>
+
+          <div class="field">
+            <label for="returnRate">
+              Investment return
+              <span class="tip" data-tip="Expected nominal annual return. Australian shares have historically returned ~9–10% p.a. A 7% assumption is conservative.">?</span>
+            </label>
+            <div class="input-wrap">
+              <input id="returnRate" type="number" min="0" max="20" step="0.1" class="num-input pct-input">
+              <span class="pct-suffix">% p.a.</span>
+            </div>
+            <div class="derived" id="realReturnDerived"></div>
+          </div>
+
+          <div class="field">
+            <label for="inflation">Inflation rate</label>
+            <div class="input-wrap">
+              <input id="inflation" type="number" min="0" max="10" step="0.1" class="num-input pct-input">
+              <span class="pct-suffix">% p.a.</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="swr">
+              Safe withdrawal rate
+              <span class="tip" data-tip="The 4% Rule says you can withdraw 4% of your portfolio each year and not run out of money over 30 years. Use 3–3.5% for a longer, more conservative retirement.">?</span>
+            </label>
+            <div class="input-wrap">
+              <input id="swr" type="number" min="1" max="10" step="0.1" class="num-input pct-input">
+              <span class="pct-suffix">%</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ── Results panel ── -->
+      <section class="results-panel" id="resultsPanel">
+
+        <!-- Summary cards -->
+        <div class="cards" id="summaryCards"></div>
+
+        <!-- FIRE type breakdown -->
+        <div class="card" id="fireTypeCard">
+          <h3 class="card-title">FIRE Scenarios</h3>
+          <table class="type-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Annual Spend</th>
+                <th>FIRE Number</th>
+                <th>Years Away</th>
+                <th>FIRE Age</th>
+              </tr>
+            </thead>
+            <tbody id="fireTypeBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Chart -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3 class="card-title">Portfolio Trajectory</h3>
+            <label class="sensitivity-toggle">
+              <input type="checkbox" id="sensitivityToggle"> Show ±1.5% scenarios
+            </label>
+          </div>
+          <canvas id="fireChart"></canvas>
+        </div>
+
+        <!-- Year-by-year table -->
+        <details class="card" id="yearDetails">
+          <summary><span class="card-title">Year-by-Year Breakdown</span></summary>
+          <div class="table-wrap">
+            <table class="year-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Age</th>
+                  <th>Portfolio</th>
+                  <th>Growth</th>
+                  <th>Contributions</th>
+                  <th>FIRE Number</th>
+                  <th>Progress</th>
+                </tr>
+              </thead>
+              <tbody id="yearTableBody"></tbody>
+            </table>
+          </div>
+        </details>
+
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Not financial advice. Projections assume constant returns and inflation — actual results will vary.</p>
+    <p><a href="../">← All KashVector tools</a></p>
+  </footer>
+
+  <script src="utils.js"></script>
+  <script src="calc/fire.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
