@@ -41,7 +41,29 @@ body {
 .home-logo:hover img { opacity: 1; }
 
 .app-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
-.app-header p  { color: var(--kv-muted); font-size: 0.88rem; margin-top: 4px; }
+.app-header > p { color: var(--kv-muted); font-size: 0.88rem; margin-top: 4px; }
+
+.header-concepts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.concept-pill {
+  background: var(--kv-card);
+  border: 1px solid var(--kv-border);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  color: var(--kv-muted);
+}
+
+.concept-pill strong {
+  color: var(--kv-accent);
+  margin-right: 5px;
+}
 
 /* ── Layout ── */
 

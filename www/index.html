@@ -15,7 +15,12 @@
       <img src="../logo.svg" alt="KashVector" width="32" height="32">
     </a>
     <h1><img src="../fire.png" alt="" width="32" height="32" style="vertical-align:middle;margin-right:8px;border-radius:6px"> FIRE Calculator</h1>
-    <p>Find your Financial Independence number, time to retire, and Coast FIRE target.</p>
+    <p>Calculate your path to Financial Independence using the 4% rule — enter your numbers and see exactly when you can retire.</p>
+    <div class="header-concepts">
+      <span class="concept-pill"><strong>FIRE Number</strong> 25× your annual expenses</span>
+      <span class="concept-pill"><strong>Coast FIRE</strong> Stop contributing, let it grow</span>
+      <span class="concept-pill"><strong>Lean / Fat FIRE</strong> Frugal vs. comfortable retirement</span>
+    </div>
   </header>
 
   <main>
@@ -54,7 +59,7 @@
           <div class="field">
             <label for="expenses">
               Annual expenses in retirement
-              <span class="tip" data-tip="How much you need to live on per year once you stop working. If you have rental income, enter it below — it will reduce your effective drawdown and FIRE Number.">?</span>
+              <span class="tip" data-tip="How much you need to live on per year once you stop working. Include all costs — housing, food, transport, healthcare, and dependants such as children. If you have rental income, enter it below — it will reduce your effective drawdown and FIRE Number.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
@@ -88,7 +93,10 @@
           </div>
 
           <div class="field">
-            <label for="age">Current age</label>
+            <label for="age">
+              Current age
+              <span class="tip" data-tip="Your current age. Used to calculate your FIRE age and how many years until retirement.">?</span>
+            </label>
             <input id="age" type="number" min="18" max="80" step="1" class="num-input">
           </div>
         </div>
@@ -109,7 +117,10 @@
           </div>
 
           <div class="field">
-            <label for="inflation">Inflation rate</label>
+            <label for="inflation">
+              Inflation rate
+              <span class="tip" data-tip="Expected average annual inflation. Your FIRE Number grows each year to keep pace with inflation. Australia's long-run average is ~2.5%.">?</span>
+            </label>
             <div class="input-wrap">
               <input id="inflation" type="number" min="0" max="10" step="0.1" class="num-input pct-input">
               <span class="pct-suffix">% p.a.</span>
