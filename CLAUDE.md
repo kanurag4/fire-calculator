@@ -58,6 +58,23 @@ Each row: `{ year, age, portfolio, contributions, growth, fireNumber, pctToFire,
 coastFire = fireNumber / (1 + investmentReturn)^yearsToCoast
 ```
 
+## Header
+- One-line description + 3 green concept pills: **FIRE Number**, **Coast FIRE**, **Lean / Fat FIRE**
+- Pills styled with `rgba(34,197,94,0.08)` background, `--kv-pass` label, stacked label/description layout
+- CSS classes: `.header-concepts`, `.concept-pill`
+
+## Tooltips
+All input fields have `?` tooltip badges (`.tip` with `data-tip`). Tooltip text covers:
+- **Liquid investments** — what counts, note on illiquid property equity
+- **Super balance** — preservation age lock-in, still counts for Coast FIRE / retirement 60+
+- **Annual expenses** — include all costs and dependants (children)
+- **Net rental income** — after-all-costs definition
+- **Annual savings** — include employer super contributions
+- **Age** — used to calculate FIRE age and years to retirement
+- **Investment return** — AU historical context, 7% is conservative
+- **Inflation** — AU long-run ~2.5% context
+- **Safe withdrawal rate** — 4% rule explanation, 3–3.5% for longer retirement
+
 ## Results
 1. **Summary cards:** FIRE Number, Years to FIRE, FIRE Age, Coast FIRE Number
 2. **FIRE type table:** Lean (67% expenses) / Standard / Fat (167% expenses) — years away for each
@@ -79,9 +96,9 @@ Key test cases: portfolio = FIRE number → 0 years; swr changes scale FIRE numb
 
 ## Deployment
 1. Copy `www/` → `C:\Projects\StockAnalysis\www\fire\`
-2. Add tool card to `C:\Projects\StockAnalysis\www\index.html`
-3. Add `fire.png` icon to `C:\Projects\StockAnalysis\www\`
-4. Push `kanurag4/stock-evaluator` → Cloudflare Pages auto-deploys
+2. Push `kanurag4/stock-evaluator` → Cloudflare Pages auto-deploys
+
+(Tool card and `fire.png` icon already added to StockAnalysis landing page.)
 
 ## Plan File
 Full implementation plan: `C:\Users\Anurag\.claude\plans\i-am-making-financial-enumerated-diffie.md`
