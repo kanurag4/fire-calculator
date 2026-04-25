@@ -3,8 +3,10 @@
 const $ = id => document.getElementById(id);
 
 const els = {
-  portfolio:         $('portfolio'),
+  liquidPortfolio:   $('liquidPortfolio'),
+  superBalance:      $('superBalance'),
   expenses:          $('expenses'),
+  rentalIncome:      $('rentalIncome'),
   savings:           $('savings'),
   age:               $('age'),
   returnRate:        $('returnRate'),
@@ -15,7 +17,9 @@ const els = {
   yearTableBody:     $('yearTableBody'),
   yearDetails:       $('yearDetails'),
   sensitivityToggle: $('sensitivityToggle'),
+  superDerived:      $('superDerived'),
   fireNumberDerived: $('fireNumberDerived'),
+  rentalDerived:     $('rentalDerived'),
   realReturnDerived: $('realReturnDerived'),
   savingsHint:       $('savingsHint'),
 };
@@ -23,13 +27,15 @@ const els = {
 const STORAGE_KEY = 'kv_fire_inputs';
 
 const DEFAULTS = {
-  portfolio:  '50,000',
-  expenses:   '60,000',
-  savings:    '25,000',
-  age:        30,
-  returnRate: 7,
-  inflation:  2.5,
-  swr:        4,
+  liquidPortfolio: '50,000',
+  superBalance:    '0',
+  expenses:        '60,000',
+  rentalIncome:    '0',
+  savings:         '25,000',
+  age:             30,
+  returnRate:      7,
+  inflation:       2.5,
+  swr:             4,
 };
 
 let fireChart = null;
@@ -46,34 +52,40 @@ renderResults();
 
 function saveToStorage() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    portfolio:  els.portfolio.value,
-    expenses:   els.expenses.value,
-    savings:    els.savings.value,
-    age:        els.age.value,
-    returnRate: els.returnRate.value,
-    inflation:  els.inflation.value,
-    swr:        els.swr.value,
+    liquidPortfolio: els.liquidPortfolio.value,
+    superBalance:    els.superBalance.value,
+    expenses:        els.expenses.value,
+    rentalIncome:    els.rentalIncome.value,
+    savings:         els.savings.value,
+    age:             els.age.value,
+    returnRate:      els.returnRate.value,
+    inflation:       els.inflation.value,
+    swr:             els.swr.value,
   }));
 }
 
 function loadFromStorage() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) {}
+  // backward compat: old single 'portfolio' field
+  if (saved.portfolio && !saved.liquidPortfolio) saved.liquidPortfolio = saved.portfolio;
   const d = Object.assign({}, DEFAULTS, saved);
 
-  els.portfolio.value  = d.portfolio;
-  els.expenses.value   = d.expenses;
-  els.savings.value    = d.savings;
-  els.age.value        = d.age;
-  els.returnRate.value = d.returnRate;
-  els.inflation.value  = d.inflation;
-  els.swr.value        = d.swr;
+  els.liquidPortfolio.value = d.liquidPortfolio;
+  els.superBalance.value    = d.superBalance;
+  els.expenses.value        = d.expenses;
+  els.rentalIncome.value    = d.rentalIncome;
+  els.savings.value         = d.savings;
+  els.age.value             = d.age;
+  els.returnRate.value      = d.returnRate;
+  els.inflation.value       = d.inflation;
+  els.swr.value             = d.swr;
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  [els.portfolio, els.expenses, els.savings].forEach(el => {
+  [els.liquidPortfolio, els.superBalance, els.expenses, els.rentalIncome, els.savings].forEach(el => {
     el.addEventListener('input', () => {
       formatMoneyInput(el);
       saveToStorage();
@@ -105,19 +117,39 @@ function scheduleRender() {
 // ── Derived displays ─────────────────────────────────────────────────────────
 
 function updateDerivedDisplays() {
-  const expenses   = parseMoney(els.expenses);
-  const swr        = parseFloat(els.swr.value) / 100 || 0.04;
-  const ret        = parseFloat(els.returnRate.value) / 100 || 0;
-  const inf        = parseFloat(els.inflation.value) / 100 || 0;
-  const savings    = parseMoney(els.savings);
+  const superBal  = parseMoney(els.superBalance);
+  const expenses  = parseMoney(els.expenses);
+  const rental    = parseMoney(els.rentalIncome);
+  const savings   = parseMoney(els.savings);
+  const swr       = parseFloat(els.swr.value) / 100 || 0.04;
+  const ret       = parseFloat(els.returnRate.value) / 100 || 0;
+  const inf       = parseFloat(els.inflation.value) / 100 || 0;
 
-  els.fireNumberDerived.textContent = expenses > 0 && swr > 0
-    ? `FIRE Number: ${formatCurrency(expenses / swr)}`
+  // Super note
+  els.superDerived.textContent = superBal > 0
+    ? 'Locked until preservation age (~60) — counts toward Coast FIRE'
     : '';
 
+  // Expenses / FIRE number
+  const effective = Math.max(0, expenses - rental);
+  if (expenses > 0 && swr > 0) {
+    els.fireNumberDerived.textContent = rental > 0
+      ? `Effective drawdown: ${formatCurrency(effective)}/yr · FIRE Number: ${formatCurrency(effective / swr)}`
+      : `FIRE Number: ${formatCurrency(expenses / swr)}`;
+  } else {
+    els.fireNumberDerived.textContent = '';
+  }
+
+  // Rental note
+  els.rentalDerived.textContent = rental > 0 && expenses > 0
+    ? `Reduces annual drawdown from ${formatCurrency(expenses)} to ${formatCurrency(effective)}`
+    : '';
+
+  // Real return
   const realReturn = ((1 + ret) / (1 + inf) - 1) * 100;
   els.realReturnDerived.textContent = `Real return: ${realReturn.toFixed(2)}% p.a.`;
 
+  // Savings hint
   const superContrib = Math.round(savings * 0.12 / 1.12);
   els.savingsHint.textContent = savings > 0
     ? `~${formatCurrency(superContrib)} of this may be employer super (12% SG)`
@@ -127,9 +159,19 @@ function updateDerivedDisplays() {
 // ── Input reading ─────────────────────────────────────────────────────────────
 
 function getInputs() {
+  const liquid       = parseMoney(els.liquidPortfolio);
+  const superBal     = parseMoney(els.superBalance);
+  const grossExpenses = parseMoney(els.expenses);
+  const rentalIncome  = parseMoney(els.rentalIncome);
+  const effective     = Math.max(0, grossExpenses - rentalIncome);
+
   return {
-    currentPortfolio: parseMoney(els.portfolio),
-    annualExpenses:   parseMoney(els.expenses),
+    currentPortfolio: liquid + superBal,
+    liquidPortfolio:  liquid,
+    superBalance:     superBal,
+    annualExpenses:   effective,
+    grossExpenses,
+    rentalIncome,
     annualSavings:    parseMoney(els.savings),
     investmentReturn: parseFloat(els.returnRate.value) / 100 || 0,
     inflation:        parseFloat(els.inflation.value) / 100 || 0,
@@ -141,8 +183,8 @@ function getInputs() {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function renderResults() {
-  const inputs = getInputs();
-  const rows   = computeFireProjection(inputs);
+  const inputs  = getInputs();
+  const rows    = computeFireProjection(inputs);
   const fireRow = rows.find(r => r.fireReached) || null;
 
   const todayFireNumber = inputs.swr > 0 ? inputs.annualExpenses / inputs.swr : 0;
@@ -166,19 +208,30 @@ function renderCards(inputs, fireRow, fireNumber, coastFire) {
     ? Math.min((inputs.currentPortfolio / fireNumber) * 100, 100)
     : 0;
 
-  const yearsClass = yearsToFire && yearsToFire <= 30 ? 'pass' : yearsToFire ? 'warn' : 'fail';
+  const yearsClass  = yearsToFire && yearsToFire <= 30 ? 'pass' : yearsToFire ? 'warn' : 'fail';
   const coastReached = inputs.currentPortfolio >= coastFire;
+
+  // Super accessibility warning shown in the Years to FIRE card
+  const superLocked = inputs.superBalance > 0 && fireAge !== null && fireAge < 60;
+  const superWarn   = superLocked
+    ? ` · Super (${formatCurrency(inputs.superBalance)}) locked until ~60`
+    : '';
+
+  // Rental income note shown in FIRE Number card
+  const rentalNote = inputs.rentalIncome > 0
+    ? ` after ${formatCurrency(inputs.rentalIncome)}/yr rental`
+    : '';
 
   els.summaryCards.innerHTML = `
     <div class="card summary-card">
       <div class="card-label">FIRE Number</div>
       <div class="card-value">${formatCurrency(fireNumber)}</div>
-      <div class="card-sub">${(inputs.swr * 100).toFixed(1)}% withdrawal rate · ${formatCurrency(inputs.annualExpenses)}/yr</div>
+      <div class="card-sub">${(inputs.swr * 100).toFixed(1)}% SWR · ${formatCurrency(inputs.annualExpenses)}/yr drawdown${rentalNote}</div>
     </div>
     <div class="card summary-card ${yearsClass}">
       <div class="card-label">Years to FIRE</div>
-      <div class="card-value">${yearsToFire ? yearsToFire : '50+'}</div>
-      <div class="card-sub">${yearsToFire ? `Retire at age ${fireAge}` : 'Increase savings or reduce expenses'}</div>
+      <div class="card-value">${yearsToFire ?? '50+'}</div>
+      <div class="card-sub">${yearsToFire ? `Retire at age ${fireAge}${superWarn}` : 'Increase savings or reduce expenses'}</div>
     </div>
     <div class="card summary-card">
       <div class="card-label">Current Progress</div>

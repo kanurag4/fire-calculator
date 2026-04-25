@@ -29,26 +29,50 @@
           <h3 class="group-title">Your Situation</h3>
 
           <div class="field">
-            <label for="portfolio">
-              Total invested assets
-              <span class="tip" data-tip="All savings and investments, including super. This is your starting point.">?</span>
+            <label for="liquidPortfolio">
+              Liquid investments
+              <span class="tip" data-tip="Shares, ETFs, managed funds, bonds, and cash savings. Investment property equity can be included but note it&#39;s illiquid — you&#39;d need to sell or refinance to access it.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
-              <input id="portfolio" type="text" inputmode="numeric" class="money-input" placeholder="0">
+              <input id="liquidPortfolio" type="text" inputmode="numeric" class="money-input" placeholder="0">
             </div>
+          </div>
+
+          <div class="field">
+            <label for="superBalance">
+              Super balance
+              <span class="tip" data-tip="Your total superannuation balance. Super is locked until preservation age (~60), so it can&#39;t fund early retirement — but it&#39;s included here as it counts toward Coast FIRE and retirement at 60+.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="superBalance" type="text" inputmode="numeric" class="money-input" placeholder="0">
+            </div>
+            <div class="derived" id="superDerived"></div>
           </div>
 
           <div class="field">
             <label for="expenses">
               Annual expenses in retirement
-              <span class="tip" data-tip="How much you need to live on per year once you stop working. Your FIRE Number = this ÷ SWR.">?</span>
+              <span class="tip" data-tip="How much you need to live on per year once you stop working. If you have rental income, enter it below — it will reduce your effective drawdown and FIRE Number.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
               <input id="expenses" type="text" inputmode="numeric" class="money-input" placeholder="60,000">
             </div>
             <div class="derived" id="fireNumberDerived"></div>
+          </div>
+
+          <div class="field">
+            <label for="rentalIncome">
+              Net rental income
+              <span class="tip" data-tip="Annual net rental income after ALL costs — mortgage interest, rates, insurance, maintenance, and property management. This reduces how much you need to withdraw from your portfolio each year.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="rentalIncome" type="text" inputmode="numeric" class="money-input" placeholder="0">
+            </div>
+            <div class="derived" id="rentalDerived"></div>
           </div>
 
           <div class="field">
