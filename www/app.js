@@ -207,6 +207,8 @@ function renderResults() {
 // ── Summary cards ─────────────────────────────────────────────────────────────
 
 function renderCards(inputs, fireRow, fireNumber, coastFire) {
+  const dividendTarget = inputs.dividendYield > 0 ? inputs.annualExpenses / inputs.dividendYield : Infinity;
+
   const yearsToFire = fireRow ? fireRow.year : null;
   const fireAge     = fireRow ? fireRow.age  : null;
   const pct = fireNumber > 0
@@ -247,6 +249,11 @@ function renderCards(inputs, fireRow, fireNumber, coastFire) {
       <div class="card-label">Coast FIRE Number</div>
       <div class="card-value">${formatCurrency(coastFire)}</div>
       <div class="card-sub">${coastReached ? 'Already reached — you can coast to 65' : 'Needed now to grow to FIRE by age 65'}</div>
+    </div>
+    <div class="card summary-card">
+      <div class="card-label">Dividend Target <span class="tip" data-tip="The portfolio needed to generate your annual expenses entirely from dividends — without ever selling shares. Based on your dividend yield assumption. Lower yield = larger target; higher yield = smaller but riskier.">?</span></div>
+      <div class="card-value">${isFinite(dividendTarget) ? formatCurrency(dividendTarget) : '—'}</div>
+      <div class="card-sub">at ${(inputs.dividendYield * 100).toFixed(1)}% yield → ${formatCurrency(inputs.annualExpenses)}/yr income</div>
     </div>
   `;
 }
