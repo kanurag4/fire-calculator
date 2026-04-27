@@ -38,6 +38,7 @@ package.json          ← { "test": "node --test tests/*.test.js" }
 | Annual savings/contributions | $25,000 |
 | Current age | 30 |
 | Investment return p.a. | 7% |
+| Dividend yield p.a. | 4% |
 | Inflation rate p.a. | 2.5% |
 | Safe withdrawal rate | 4% |
 | Super balance (optional) | $0 |
@@ -71,12 +72,15 @@ All input fields have `?` tooltip badges (`.tip` with `data-tip`). Tooltip text 
 - **Net rental income** — after-all-costs definition
 - **Annual savings** — include employer super contributions
 - **Age** — used to calculate FIRE age and years to retirement
-- **Investment return** — AU historical context, 7% is conservative
+- **Investment return** — total return (capital growth + dividends reinvested), AU historical ~9–10%, 7% is conservative
+- **Dividend yield** — income yield only (not total return), AU high-yield ETFs/LICs ~4–5%
 - **Inflation** — AU long-run ~2.5% context
 - **Safe withdrawal rate** — 4% rule explanation, 3–3.5% for longer retirement
+- **Dividend Target card** — portfolio needed to live off dividends without selling shares; lower yield = larger target
 
 ## Results
-1. **Summary cards:** FIRE Number, Years to FIRE, FIRE Age, Coast FIRE Number
+1. **Summary cards:** FIRE Number, Years to FIRE, Current Progress, Coast FIRE Number, Dividend Target
+   - Dividend Target = `effectiveExpenses / dividendYield` — computed inline in `app.js`, not in `calc/fire.js`
 2. **FIRE type table:** Lean (67% expenses) / Standard / Fat (167% expenses) — years away for each
 3. **Portfolio growth chart:** portfolio line vs inflating FIRE target line (dashed); sensitivity ±1.5% toggle
 4. **Year-by-year table:** collapsible `<details>` — Year, Age, Portfolio, Growth, Contributions, FIRE Number, Progress %
@@ -97,6 +101,8 @@ Key test cases: portfolio = FIRE number → 0 years; swr changes scale FIRE numb
 ## Deployment
 1. Copy `www/` → `C:\Projects\StockAnalysis\www\fire\`
 2. Push `kanurag4/stock-evaluator` → Cloudflare Pages auto-deploys
+
+**SEO rule:** Before copying, check if the deployed `index.html` has richer SEO content (JSON-LD schema, detailed meta description) than the source. If so, port it to the source first. The deployed copy holds the canonical SEO metadata.
 
 (Tool card and `fire.png` icon already added to StockAnalysis landing page.)
 
