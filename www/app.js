@@ -12,6 +12,7 @@ const els = {
   returnRate:        $('returnRate'),
   inflation:         $('inflation'),
   swr:               $('swr'),
+  dividendYield:     $('dividendYield'),
   summaryCards:      $('summaryCards'),
   fireTypeBody:      $('fireTypeBody'),
   yearTableBody:     $('yearTableBody'),
@@ -36,6 +37,7 @@ const DEFAULTS = {
   returnRate:      7,
   inflation:       2.5,
   swr:             4,
+  dividendYield:   4,
 };
 
 let fireChart = null;
@@ -61,6 +63,7 @@ function saveToStorage() {
     returnRate:      els.returnRate.value,
     inflation:       els.inflation.value,
     swr:             els.swr.value,
+    dividendYield:   els.dividendYield.value,
   }));
 }
 
@@ -80,6 +83,7 @@ function loadFromStorage() {
   els.returnRate.value      = d.returnRate;
   els.inflation.value       = d.inflation;
   els.swr.value             = d.swr;
+  els.dividendYield.value   = d.dividendYield;
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────
@@ -94,7 +98,7 @@ function bindEvents() {
     });
   });
 
-  [els.age, els.returnRate, els.inflation, els.swr].forEach(el => {
+  [els.age, els.returnRate, els.inflation, els.swr, els.dividendYield].forEach(el => {
     el.addEventListener('input', () => {
       saveToStorage();
       updateDerivedDisplays();
@@ -176,6 +180,7 @@ function getInputs() {
     investmentReturn: parseFloat(els.returnRate.value) / 100 || 0,
     inflation:        parseFloat(els.inflation.value) / 100 || 0,
     swr:              parseFloat(els.swr.value) / 100 || 0.04,
+    dividendYield:    parseFloat(els.dividendYield.value) / 100 || 0,
     currentAge:       parseInt(els.age.value, 10) || 30,
   };
 }
