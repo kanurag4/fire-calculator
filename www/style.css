@@ -43,9 +43,16 @@ body {
 .app-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; padding: 0 52px; }
 .app-header > p { color: var(--kv-muted); font-size: 0.88rem; margin-top: 4px; padding: 0 52px; }
 
-@media (max-width: 480px) {
-  .app-header h1 { font-size: 1.2rem; padding: 0 48px; }
-  .app-header > p { padding: 0 48px; font-size: 0.82rem; }
+@media (max-width: 800px) {
+  input, select, textarea { font-size: 16px; }
+  /* Header: proper 3-column flex layout — logo | center | toggle, no overlap */
+  .app-header { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px; }
+  .home-logo { position: static; flex: 0 0 auto; order: 1; padding-top: 6px; }
+  .app-header-center { flex: 1; min-width: 0; order: 2; text-align: center; }
+  .theme-toggle { position: static; flex: 0 0 auto; order: 3; width: 44px; height: 44px; }
+  .app-header h1 { font-size: 1.1rem; padding: 0; }
+  .app-header > p { padding: 0; font-size: 0.82rem; }
+  .header-concepts { display: none; }
 }
 
 .header-concepts {
@@ -497,18 +504,22 @@ html:not(.dark) {
   right: 16px;
   width: 32px;
   height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--kv-border);
+  background: var(--kv-card);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
   color: var(--kv-muted);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s;
+  font-size: 0.9rem;
+  transition: background 0.15s, border-color 0.15s;
 }
-.theme-toggle:hover { background: var(--kv-card-2); }
+.theme-toggle:hover {
+  background: var(--kv-card-2);
+  border-color: var(--kv-accent);
+  color: var(--kv-text);
+}
 
 /* ── Hidden ── */
 
