@@ -3,41 +3,42 @@
 const $ = id => document.getElementById(id);
 
 const els = {
-  liquidPortfolio:   $('liquidPortfolio'),
-  superBalance:      $('superBalance'),
-  expenses:          $('expenses'),
-  rentalIncome:      $('rentalIncome'),
-  savings:           $('savings'),
-  age:               $('age'),
-  returnRate:        $('returnRate'),
-  inflation:         $('inflation'),
-  swr:               $('swr'),
-  dividendYield:     $('dividendYield'),
-  summaryCards:      $('summaryCards'),
-  fireTypeBody:      $('fireTypeBody'),
-  yearTableBody:     $('yearTableBody'),
-  yearDetails:       $('yearDetails'),
-  sensitivityToggle: $('sensitivityToggle'),
-  superDerived:      $('superDerived'),
-  fireNumberDerived: $('fireNumberDerived'),
-  rentalDerived:     $('rentalDerived'),
-  realReturnDerived: $('realReturnDerived'),
-  savingsHint:       $('savingsHint'),
+  liquidPortfolio:      $('liquidPortfolio'),
+  superBalance:         $('superBalance'),
+  superContributions:   $('superContributions'),
+  expenses:             $('expenses'),
+  rentalIncome:         $('rentalIncome'),
+  savings:              $('savings'),
+  age:                  $('age'),
+  returnRate:           $('returnRate'),
+  inflation:            $('inflation'),
+  swr:                  $('swr'),
+  dividendYield:        $('dividendYield'),
+  summaryCards:         $('summaryCards'),
+  fireTypeBody:         $('fireTypeBody'),
+  yearTableBody:        $('yearTableBody'),
+  yearDetails:          $('yearDetails'),
+  sensitivityToggle:    $('sensitivityToggle'),
+  superDerived:         $('superDerived'),
+  fireNumberDerived:    $('fireNumberDerived'),
+  rentalDerived:        $('rentalDerived'),
+  realReturnDerived:    $('realReturnDerived'),
 };
 
 const STORAGE_KEY = 'kv_fire_inputs';
 
 const DEFAULTS = {
-  liquidPortfolio: '50,000',
-  superBalance:    '0',
-  expenses:        '60,000',
-  rentalIncome:    '0',
-  savings:         '25,000',
-  age:             30,
-  returnRate:      7,
-  inflation:       2.5,
-  swr:             4,
-  dividendYield:   4,
+  liquidPortfolio:    '50,000',
+  superBalance:       '0',
+  superContributions: '30,000',
+  expenses:           '60,000',
+  rentalIncome:       '0',
+  savings:            '25,000',
+  age:                30,
+  returnRate:         7,
+  inflation:          2.5,
+  swr:                4,
+  dividendYield:      4,
 };
 
 let fireChart = null;
@@ -54,16 +55,17 @@ renderResults();
 
 function saveToStorage() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    liquidPortfolio: els.liquidPortfolio.value,
-    superBalance:    els.superBalance.value,
-    expenses:        els.expenses.value,
-    rentalIncome:    els.rentalIncome.value,
-    savings:         els.savings.value,
-    age:             els.age.value,
-    returnRate:      els.returnRate.value,
-    inflation:       els.inflation.value,
-    swr:             els.swr.value,
-    dividendYield:   els.dividendYield.value,
+    liquidPortfolio:    els.liquidPortfolio.value,
+    superBalance:       els.superBalance.value,
+    superContributions: els.superContributions.value,
+    expenses:           els.expenses.value,
+    rentalIncome:       els.rentalIncome.value,
+    savings:            els.savings.value,
+    age:                els.age.value,
+    returnRate:         els.returnRate.value,
+    inflation:          els.inflation.value,
+    swr:                els.swr.value,
+    dividendYield:      els.dividendYield.value,
   }));
 }
 
@@ -74,22 +76,23 @@ function loadFromStorage() {
   if (saved.portfolio && !saved.liquidPortfolio) saved.liquidPortfolio = saved.portfolio;
   const d = Object.assign({}, DEFAULTS, saved);
 
-  els.liquidPortfolio.value = d.liquidPortfolio;
-  els.superBalance.value    = d.superBalance;
-  els.expenses.value        = d.expenses;
-  els.rentalIncome.value    = d.rentalIncome;
-  els.savings.value         = d.savings;
-  els.age.value             = d.age;
-  els.returnRate.value      = d.returnRate;
-  els.inflation.value       = d.inflation;
-  els.swr.value             = d.swr;
-  els.dividendYield.value   = d.dividendYield;
+  els.liquidPortfolio.value    = d.liquidPortfolio;
+  els.superBalance.value       = d.superBalance;
+  els.superContributions.value = d.superContributions;
+  els.expenses.value           = d.expenses;
+  els.rentalIncome.value       = d.rentalIncome;
+  els.savings.value            = d.savings;
+  els.age.value                = d.age;
+  els.returnRate.value         = d.returnRate;
+  els.inflation.value          = d.inflation;
+  els.swr.value                = d.swr;
+  els.dividendYield.value      = d.dividendYield;
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  [els.liquidPortfolio, els.superBalance, els.expenses, els.rentalIncome, els.savings].forEach(el => {
+  [els.liquidPortfolio, els.superBalance, els.superContributions, els.expenses, els.rentalIncome, els.savings].forEach(el => {
     el.addEventListener('input', () => {
       formatMoneyInput(el);
       saveToStorage();
@@ -124,7 +127,6 @@ function updateDerivedDisplays() {
   const superBal  = parseMoney(els.superBalance);
   const expenses  = parseMoney(els.expenses);
   const rental    = parseMoney(els.rentalIncome);
-  const savings   = parseMoney(els.savings);
   const swr       = parseFloat(els.swr.value) / 100 || 0.04;
   const ret       = parseFloat(els.returnRate.value) / 100 || 0;
   const inf       = parseFloat(els.inflation.value) / 100 || 0;
@@ -152,12 +154,6 @@ function updateDerivedDisplays() {
   // Real return
   const realReturn = ((1 + ret) / (1 + inf) - 1) * 100;
   els.realReturnDerived.textContent = `Real return: ${realReturn.toFixed(2)}% p.a.`;
-
-  // Savings hint
-  const superContrib = Math.round(savings * 0.12 / 1.12);
-  els.savingsHint.textContent = savings > 0
-    ? `~${formatCurrency(superContrib)} of this may be employer super (12% SG)`
-    : '';
 }
 
 // ── Input reading ─────────────────────────────────────────────────────────────
@@ -176,8 +172,9 @@ function getInputs() {
     annualExpenses:   effective,
     grossExpenses,
     rentalIncome,
-    annualSavings:    parseMoney(els.savings),
-    investmentReturn: parseFloat(els.returnRate.value) / 100 || 0,
+    annualSavings:            parseMoney(els.savings),
+    annualSuperContributions: parseMoney(els.superContributions),
+    investmentReturn:         parseFloat(els.returnRate.value) / 100 || 0,
     inflation:        parseFloat(els.inflation.value) / 100 || 0,
     swr:              parseFloat(els.swr.value) / 100 || 0.04,
     dividendYield:    parseFloat(els.dividendYield.value) / 100 || 0,
@@ -263,7 +260,8 @@ function renderCards(inputs, fireRow, fireNumber, coastFire) {
 function renderFireTypeTable(inputs) {
   const types = fireTypeBreakdown(
     inputs.annualExpenses, inputs.swr, inputs.investmentReturn,
-    inputs.inflation, inputs.currentPortfolio, inputs.annualSavings, inputs.currentAge
+    inputs.inflation, inputs.liquidPortfolio, inputs.annualSavings, inputs.currentAge,
+    inputs.superBalance, inputs.annualSuperContributions
   );
 
   els.fireTypeBody.innerHTML = types.map(t => {

@@ -1,8 +1,11 @@
 function computeFireProjection(inputs) {
   const {
+    liquidPortfolio,
     currentPortfolio = 0,
+    superBalance = 0,
     annualExpenses = 60000,
     annualSavings = 25000,
+    annualSuperContributions = 0,
     investmentReturn = 0.07,
     inflation = 0.025,
     swr = 0.04,
@@ -10,14 +13,22 @@ function computeFireProjection(inputs) {
     maxYears = 50,
   } = inputs;
 
+  // backward compat: if liquidPortfolio not provided, treat currentPortfolio as liquid
+  const initLiquid = liquidPortfolio != null ? liquidPortfolio : currentPortfolio;
+
   const rows = [];
-  let portfolio = currentPortfolio;
+  let liquid = initLiquid;
+  let superBal = superBalance;
 
   for (let year = 1; year <= maxYears; year++) {
     const inflationFactor = Math.pow(1 + inflation, year);
     const fireNumber = swr > 0 ? (annualExpenses * inflationFactor) / swr : Infinity;
-    const growth = portfolio * investmentReturn;
-    portfolio = portfolio + growth + annualSavings;
+    const liquidGrowth = liquid * investmentReturn;
+    const superGrowth = superBal * investmentReturn;
+    const growth = liquidGrowth + superGrowth;
+    liquid = liquid + liquidGrowth + annualSavings;
+    superBal = superBal + superGrowth + annualSuperContributions;
+    const portfolio = liquid + superBal;
     const pctToFire = fireNumber > 0 && isFinite(fireNumber)
       ? Math.min((portfolio / fireNumber) * 100, 100)
       : 0;
@@ -27,8 +38,10 @@ function computeFireProjection(inputs) {
       year,
       age: currentAge + year,
       portfolio,
+      liquidPortfolio: liquid,
+      superBalance: superBal,
       growth,
-      contributions: annualSavings,
+      contributions: annualSavings + annualSuperContributions,
       fireNumber,
       pctToFire,
       fireReached,
@@ -49,7 +62,7 @@ function coastFireNumber(annualExpenses, swr, investmentReturn, inflation, curre
   return fireNumberAtRetirement / Math.pow(1 + investmentReturn, yearsToCoast);
 }
 
-function fireTypeBreakdown(annualExpenses, swr, investmentReturn, inflation, currentPortfolio, annualSavings, currentAge) {
+function fireTypeBreakdown(annualExpenses, swr, investmentReturn, inflation, currentPortfolio, annualSavings, currentAge, superBalance = 0, annualSuperContributions = 0) {
   const types = [
     { name: 'Lean FIRE', multiplier: 0.67 },
     { name: 'Your FIRE', multiplier: 1.0 },
@@ -61,8 +74,10 @@ function fireTypeBreakdown(annualExpenses, swr, investmentReturn, inflation, cur
     const fireNumber = swr > 0 ? expenses / swr : Infinity;
     const rows = computeFireProjection({
       currentPortfolio,
+      superBalance,
       annualExpenses: expenses,
       annualSavings,
+      annualSuperContributions,
       investmentReturn,
       inflation,
       swr,

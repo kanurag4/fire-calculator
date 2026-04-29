@@ -118,6 +118,43 @@ test('maxYears caps projection when FIRE unreachable', () => {
   assert.ok(rows.every(r => !r.fireReached));
 });
 
+test('super contributions grow separately at investmentReturn', () => {
+  const rows = computeFireProjection({
+    liquidPortfolio: 100000,
+    superBalance: 50000,
+    annualExpenses: 999999,
+    annualSavings: 10000,
+    annualSuperContributions: 5000,
+    investmentReturn: 0.10,
+    inflation: 0.025,
+    swr: 0.04,
+    currentAge: 30,
+    maxYears: 2,
+  });
+  // Year 1: liquid = 100000*1.1 + 10000 = 120000, super = 50000*1.1 + 5000 = 60000
+  near(rows[0].liquidPortfolio, 120000, 1, 'Year 1 liquid portfolio');
+  near(rows[0].superBalance, 60000, 1, 'Year 1 super balance');
+  near(rows[0].portfolio, 180000, 1, 'Year 1 combined portfolio');
+  near(rows[0].contributions, 15000, 1, 'Year 1 total contributions');
+});
+
+test('zero super contributions leaves super balance growing by return only', () => {
+  const rows = computeFireProjection({
+    liquidPortfolio: 0,
+    superBalance: 100000,
+    annualExpenses: 999999,
+    annualSavings: 0,
+    annualSuperContributions: 0,
+    investmentReturn: 0.08,
+    inflation: 0.025,
+    swr: 0.04,
+    currentAge: 30,
+    maxYears: 1,
+  });
+  near(rows[0].superBalance, 108000, 1, 'Super grows by return only');
+  near(rows[0].liquidPortfolio, 0, 1, 'Liquid stays zero');
+});
+
 // ── coastFireNumber ──────────────────────────────────────────────────────────
 
 test('coastFireNumber returns correct discounted value', () => {

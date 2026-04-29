@@ -71,6 +71,17 @@
           </div>
 
           <div class="field">
+            <label for="superContributions">
+              Super contributions / year
+              <span class="tip" data-tip="Annual contributions going into super — your employer&#39;s SG (currently 11.5%) plus any salary sacrifice or personal contributions. Super grows at the same investment return rate as your liquid investments but is locked until ~60.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="superContributions" type="text" inputmode="numeric" class="money-input" placeholder="30,000">
+            </div>
+          </div>
+
+          <div class="field">
             <label for="expenses">
               Annual expenses in retirement
               <span class="tip" data-tip="How much you need to live on per year once you stop working. Include all costs — housing, food, transport, healthcare, and dependants such as children. If you have rental income, enter it below — it will reduce your effective drawdown and FIRE Number.">?</span>
@@ -97,13 +108,12 @@
           <div class="field">
             <label for="savings">
               Annual savings / contributions
-              <span class="tip" data-tip="Total amount added to your investments each year — including employer super contributions.">?</span>
+              <span class="tip" data-tip="Amount added to your liquid investments each year — excluding super. Include take-home savings, side income, and any non-super investments such as ETFs or shares.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
               <input id="savings" type="text" inputmode="numeric" class="money-input" placeholder="25,000">
             </div>
-            <div class="derived" id="savingsHint"></div>
           </div>
 
           <div class="field">
@@ -244,6 +254,10 @@
       <details class="faq-item">
         <summary>What is Coast FIRE?</summary>
         <p>Coast FIRE is the portfolio size at which — even if you stop contributing entirely — compound growth will carry it to your full FIRE number by your target retirement age. Once you've coasted, you only need to earn enough to cover your current living expenses.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Should I include super in my annual savings?</summary>
+        <p>No — enter super contributions separately in the "Super contributions / year" field, and enter only liquid savings (ETFs, shares, cash) in "Annual savings / contributions". The calculator tracks them separately because super grows at the same rate but is locked until ~60, which affects how much of your wealth you can access before preservation age.</p>
       </details>
       <details class="faq-item">
         <summary>How accurate are these projections?</summary>
