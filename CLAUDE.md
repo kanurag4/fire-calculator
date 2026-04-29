@@ -104,7 +104,7 @@ Key test cases: portfolio = FIRE number → 0 years; swr changes scale FIRE numb
 
 **SEO rule:** Before copying, check if the deployed `index.html` has richer SEO content (JSON-LD schema, detailed meta description) than the source. If so, port it to the source first. The deployed copy holds the canonical SEO metadata.
 
-(Tool card and `fire.png` icon already added to StockAnalysis landing page.)
+(Tool card and `fire-icon.svg` icon added to StockAnalysis landing page. Header uses `fire-icon.svg`; `fire.png` is legacy — do not reference it.)
 
 ## Plan File
 Full implementation plan: `C:\Users\Anurag\.claude\plans\i-am-making-financial-enumerated-diffie.md`
