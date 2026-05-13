@@ -108,3 +108,37 @@ Key test cases: portfolio = FIRE number → 0 years; swr changes scale FIRE numb
 
 ## Plan File
 Full implementation plan: `C:\Users\Anurag\.claude\plans\i-am-making-financial-enumerated-diffie.md`
+
+---
+
+## Capital Gains Tax (CGT) Modelling — Future Feature Discussion
+
+### Current State
+The engine does **not** model CGT. Projections assume:
+- Portfolio grows by `investmentReturn` (nominal, after inflation)
+- No withdrawal mechanics or tax on gains
+- The 4% SWR implicitly includes some tax allowance, but undefined
+- User reaches FIRE when `portfolio ≥ fireNumber`, then withdraws at 4% indefinitely
+
+### Budget 2026 Changes (Effective July 1, 2027)
+1. **CGT Discount Replacement:** 50% discount → inflation-indexed cost base + 30% minimum tax floor
+2. **Negative Gearing:** Limited to newly built properties (existing properties grandfathered until sale)
+3. **Income Tax:** 16% bracket drops to 15% (2026-27), then 14% (2027-28)
+4. **Tax Offsets:** New $250 WATO and $1,000 instant deduction for work expenses
+
+### Why CGT Matters for FIRE
+When withdrawing at retirement, selling assets triggers CGT. The true FIRE number must be large enough to cover:
+- The annual withdrawal amount AND
+- The tax on capital gains realised by selling
+
+Under the old 50% discount (effective tax ~20–25%), this gap was smaller. Under the new rules (effective tax ~30%), the gap is larger — meaning users need a higher FIRE number than current calculations suggest.
+
+### Design Options (TBD)
+1. **Effective CGT rate slider** — User estimates blended tax rate; applied to withdrawal withdrawals
+2. **Asset-specific tracking** — Separate shares/property/cash; calculate CGT per class with different rates
+3. **Acquisition date split** — Model pre-2027 vs post-2027 gains separately (50% vs 30% tax rates)
+
+### Decision Needed
+- Scope: Full CGT model vs simplified effective rate?
+- Priority: Core feature or nice-to-have?
+- Timeline: Include in next session or defer?
