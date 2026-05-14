@@ -277,12 +277,12 @@ function getInputs() {
     annualSuperContributions: parseMoney(els.superContributions),
     investmentReturn:         parseFloat(els.returnRate.value) / 100 || 0,
     inflation:        parseFloat(els.inflation.value) / 100 || 0,
-    swr:              parseFloat(els.swr.value) / 100 || 0.04,
+    swr:              (() => { const v = parseFloat(els.swr.value) / 100; return isFinite(v) ? v : 0.04; })(),
     dividendYield:    parseFloat(els.dividendYield.value) / 100 || 0,
     currentAge:       parseInt(els.age.value, 10) || 30,
     incomeTaxRate,
     assetAcquisition: els.assetAcquisition.value,
-    costBaseRatio:    (parseInt(els.costBaseRatio.value) || 40) / 100,
+    costBaseRatio:    (() => { const v = parseFloat(els.costBaseRatio.value); return isFinite(v) ? Math.max(0, Math.min(100, v)) / 100 : 0.40; })(),
     purchaseYear:     parseInt(els.purchaseYear.value) || 2020,
   };
 }
@@ -292,36 +292,38 @@ function getInputs() {
 function renderResults() {
   const inputs  = getInputs();
 
-  // Compute tax-adjusted withdrawal
-  // First pass: untaxed projection to estimate yearsToFire
-  const untaxedInputs = { ...inputs, annualExpenses: inputs.annualExpenses };
-  const untaxedRows = computeFireProjection(untaxedInputs);
-  const approxYearsToFire = untaxedRows.length > 0 ? untaxedRows[untaxedRows.length - 1].year : 20;
-  const fireYear = new Date().getFullYear() + approxYearsToFire;
-
-  // Calculate CGT per dollar
-  const cgtPerDollar = inputs.assetAcquisition === 'pre-budget'
-    ? calcCGTPreBudget({
-        marginalRate: inputs.incomeTaxRate,
-        costBaseRatio: inputs.costBaseRatio,
-        purchaseYear: inputs.purchaseYear,
-        fireYear,
-        investmentReturn: inputs.investmentReturn,
-        inflation: inputs.inflation
-      })
-    : calcCGTPostBudget({
-        marginalRate: inputs.incomeTaxRate,
-        costBaseRatio: inputs.costBaseRatio,
-        yearsToFire: approxYearsToFire,
-        inflation: inputs.inflation
-      });
-
-  // Gross up the withdrawal for taxes
-  const grossWithdrawal = grossUpWithdrawal(inputs.annualExpenses, cgtPerDollar);
-
-  // Second pass: taxed projection using gross withdrawal
+  // Iteratively compute tax-adjusted withdrawal: CGT depends on yearsToFire, which
+  // depends on CGT. Iterate until the taxed projection year stabilises (usually 1-2 passes).
+  const currentYear = new Date().getFullYear();
+  let approxYearsToFire = (() => {
+    const r = computeFireProjection({ ...inputs });
+    return r.length > 0 ? r[r.length - 1].year : 20;
+  })();
+  let rows, cgtPerDollar, grossWithdrawal;
+  for (let iter = 0; iter < 6; iter++) {
+    const fireYear = currentYear + approxYearsToFire;
+    cgtPerDollar = inputs.assetAcquisition === 'pre-budget'
+      ? calcCGTPreBudget({
+          marginalRate: inputs.incomeTaxRate,
+          costBaseRatio: inputs.costBaseRatio,
+          purchaseYear: inputs.purchaseYear,
+          fireYear,
+          investmentReturn: inputs.investmentReturn,
+          inflation: inputs.inflation
+        })
+      : calcCGTPostBudget({
+          marginalRate: inputs.incomeTaxRate,
+          costBaseRatio: inputs.costBaseRatio,
+          yearsToFire: approxYearsToFire,
+          inflation: inputs.inflation
+        });
+    grossWithdrawal = grossUpWithdrawal(inputs.annualExpenses, cgtPerDollar);
+    rows = computeFireProjection({ ...inputs, annualExpenses: grossWithdrawal });
+    const taxedYears = rows.length > 0 ? rows[rows.length - 1].year : 20;
+    if (taxedYears === approxYearsToFire) break;
+    approxYearsToFire = taxedYears;
+  }
   const taxedInputs = { ...inputs, annualExpenses: grossWithdrawal };
-  const rows    = computeFireProjection(taxedInputs);
   const fireRow = rows.find(r => r.fireReached) || null;
 
   const todayFireNumber = inputs.swr > 0 ? grossWithdrawal / inputs.swr : 0;

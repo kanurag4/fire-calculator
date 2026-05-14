@@ -20,6 +20,19 @@ function computeFireProjection(inputs) {
   let liquid = initLiquid;
   let superBal = superBalance;
 
+  // Year-0 pre-check: already FIRE-ready today
+  const initFireNumber = swr > 0 ? annualExpenses / swr : Infinity;
+  const initPortfolio  = initLiquid + superBal;
+  if (isFinite(initFireNumber) && initPortfolio >= initFireNumber) {
+    rows.push({
+      year: 0, age: currentAge,
+      portfolio: initPortfolio, liquidPortfolio: initLiquid, superBalance: superBal,
+      growth: 0, contributions: 0,
+      fireNumber: initFireNumber, pctToFire: 100, fireReached: true,
+    });
+    return rows;
+  }
+
   for (let year = 1; year <= maxYears; year++) {
     const inflationFactor = Math.pow(1 + inflation, year);
     const fireNumber = swr > 0 ? (annualExpenses * inflationFactor) / swr : Infinity;
