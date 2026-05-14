@@ -18,14 +18,15 @@
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "AUD" }
   }
   </script>
-  <script src="/kv-theme.js"></script>
+  <script src="../kv-theme.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <header class="app-header">
-    <a href="../" class="home-logo" aria-label="KashVector home">
+    <a href="../" class="home-logo" aria-label="All KashVector tools">
       <img src="../logo.svg" alt="KashVector" width="32" height="32">
+      <span class="home-logo-label">← All tools</span>
     </a>
     <div class="app-header-center">
       <h1><img src="../fire-icon.svg" alt="" width="32" height="32" style="vertical-align:middle;margin-right:8px;border-radius:6px"> FIRE Calculator</h1>
@@ -75,7 +76,7 @@
           <div class="field">
             <label for="superContributions">
               Super contributions / year
-              <span class="tip" data-tip="Annual contributions going into super — your employer&#39;s SG (currently 11.5%) plus any salary sacrifice or personal contributions. Super grows at the same investment return rate as your liquid investments but is locked until ~60.">?</span>
+              <span class="tip" data-tip="Annual contributions going into super — your employer&#39;s super guarantee (currently 12%) plus any salary sacrifice or personal contributions. Super grows at the same investment return rate as your liquid investments but is locked until ~60.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
@@ -97,8 +98,8 @@
 
           <div class="field">
             <label for="rentalIncome">
-              Net rental income
-              <span class="tip" data-tip="Annual net rental income after ALL costs — mortgage interest, rates, insurance, maintenance, and property management. This reduces how much you need to withdraw from your portfolio each year.">?</span>
+              Annual rental income
+              <span class="tip" data-tip="Annual net rental income after ALL costs — mortgage interest, rates, insurance, maintenance, and property management. This reduces how much you need to withdraw from your portfolio each year. Leave blank (or enter 0) if you have no rental income.">?</span>
             </label>
             <div class="input-wrap">
               <span class="currency-prefix">$</span>
@@ -176,6 +177,66 @@
           </div>
         </div>
 
+        <div class="input-group">
+          <h3 class="group-title">Tax &amp; CGT</h3>
+
+          <div class="field">
+            <label for="incomeRetirement">
+              Income in retirement
+              <span class="tip" data-tip="Your expected assessable income in retirement — typically close to your annual expenses. Used to calculate marginal tax rate on withdrawals. 2026-27 rates applied.">?</span>
+            </label>
+            <div class="input-wrap">
+              <span class="currency-prefix">$</span>
+              <input id="incomeRetirement" type="text" inputmode="numeric" class="money-input" placeholder="60,000">
+            </div>
+            <div class="derived" id="taxRateDerived"></div>
+          </div>
+
+          <div class="field">
+            <label for="taxRateOverride">
+              Tax rate override
+              <span class="tip" data-tip="Override the auto-calculated marginal rate. Leave blank to auto-calculate from income above.">?</span>
+            </label>
+            <div class="input-wrap">
+              <input id="taxRateOverride" type="number" min="0" max="60" step="0.5" placeholder="Auto" class="num-input pct-input">
+              <span class="pct-suffix">%</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="assetAcquisition">
+              Assets acquired
+              <span class="tip" data-tip="Whether your investment portfolio was acquired before or after the 2026 Budget date (12 May 2026). Pre-budget assets use 50% CGT discount for gains before 1 July 2027, then indexation. Post-budget assets use inflation indexation with a 30% minimum CGT rate.">?</span>
+            </label>
+            <select id="assetAcquisition">
+              <option value="pre-budget">Pre-12 May 2026</option>
+              <option value="post-budget">Post-12 May 2026</option>
+            </select>
+          </div>
+
+          <div class="field" id="purchaseYearRow">
+            <label for="purchaseYear">
+              Approximate purchase year
+              <span class="tip" data-tip="The year you started building this portfolio. Used to calculate the pre/post July 2027 gain split for CGT purposes.">?</span>
+            </label>
+            <input id="purchaseYear" type="number" min="1990" max="2025" step="1" value="2020" class="num-input">
+          </div>
+
+          <div class="field">
+            <label for="costBaseRatio">
+              Cost base ratio
+              <span class="tip" data-tip="What percentage of your portfolio's current value is original cost (money you put in). The rest is capital growth. E.g. if you invested $400k and it's now worth $1M, your cost base ratio is 40%. A lower ratio means more taxable gain per dollar sold.">?</span>
+            </label>
+            <div class="input-wrap">
+              <input id="costBaseRatio" type="number" min="1" max="99" step="1" value="40" class="num-input pct-input">
+              <span class="pct-suffix">%</span>
+            </div>
+            <div class="derived" id="cgtDerived"></div>
+          </div>
+        </div>
+
+        <button id="resetBtn" class="reset-btn">Reset to Defaults</button>
+
       </aside>
 
       <!-- ── Results panel ── -->
@@ -242,6 +303,7 @@
       <h2>About this tool</h2>
       <p>Calculate exactly how much money you need to retire early — your Financial Independence number — and how long it will take at your current savings rate. The calculator also shows your Coast FIRE number: the point at which you can stop contributing and let compound growth carry you to full retirement.</p>
       <p>Built for Australians planning early retirement, but useful for anyone following a FIRE strategy anywhere in the world.</p>
+      <p>Updated for the <strong style="color:var(--kv-text)">2026–27 Federal Budget</strong>: reflects the new income tax brackets (effective 1 July 2026) and the replacement of the 50% CGT discount with inflation indexation and a 30% minimum rate (effective 1 July 2027). The FIRE Number shown is tax-adjusted — it's the portfolio size needed so that 4% withdrawals cover your expenses <em>after</em> income tax and CGT.</p>
     </div>
     <div class="tool-faq">
       <h2>Frequently asked questions</h2>
@@ -269,6 +331,46 @@
         <summary>What is the Dividend Target?</summary>
         <p>The Dividend Target is the portfolio size needed to cover your annual expenses entirely from dividend income — without ever selling shares. It's calculated by dividing your annual expenses by your dividend yield assumption. For example, at a 4% yield you need 25× your annual expenses. This differs from your FIRE Number in that it relies purely on income yield, not the 4% withdrawal rule. It suits investors who prefer to live off dividends and leave their capital untouched.</p>
       </details>
+
+      <details class="faq-item">
+        <summary>What changed in the 2026 Federal Budget? <span class="faq-tag">2026 Budget</span></summary>
+        <p>The May 2026 Federal Budget introduced two changes that directly affect FIRE planning, both effective from 1 July 2026 or 1 July 2027:</p>
+        <ul>
+          <li><strong>New income tax brackets</strong> — the $18,201–$45,000 bracket drops to 17% (including Medicare levy), and the 32% bracket now extends up to $135,000 (previously $120,000). Effective 1 July 2026. Lower rates mean slightly less tax on your retirement withdrawals.</li>
+          <li><strong>CGT discount replaced</strong> — the 50% CGT discount is removed for assets acquired after 12 May 2026. Instead, your cost base is inflation-indexed, and gains above that are taxed at your marginal rate with a minimum of 30%. Effective 1 July 2027. Assets acquired before 12 May 2026 keep the 50% discount for gains realised before 1 July 2027, then switch to indexation.</li>
+        </ul>
+        <p>Both changes affect how much you need to withdraw from your portfolio each year in retirement, which in turn affects your FIRE Number. This calculator accounts for both.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>What are the new 2026–27 income tax brackets? <span class="faq-tag">2026 Budget</span></summary>
+        <p>The updated Australian rates (including 2% Medicare levy) from 1 July 2026:</p>
+        <ul>
+          <li>$0 – $18,200 &nbsp;→&nbsp; 0%</li>
+          <li>$18,201 – $45,000 &nbsp;→&nbsp; 17% (down from 21%)</li>
+          <li>$45,001 – $135,000 &nbsp;→&nbsp; 32% (down from 34.5%, threshold raised from $120k)</li>
+          <li>$135,001 – $190,000 &nbsp;→&nbsp; 39%</li>
+          <li>$190,001+ &nbsp;→&nbsp; 47%</li>
+        </ul>
+        <p>Enter your expected income in retirement and the calculator will apply the correct marginal rate automatically. You can override it manually in the Tax &amp; CGT section if needed.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>How did CGT change, and how does it affect my FIRE Number? <span class="faq-tag">2026 Budget</span></summary>
+        <p>When you sell investments to fund retirement, you trigger CGT on any capital gains. The 2026 budget replaced the 50% discount with inflation indexation for assets acquired after 12 May 2026:</p>
+        <ul>
+          <li><strong>Pre-budget assets</strong> (acquired before 12 May 2026): gains realised before 1 July 2027 use the 50% discount at your marginal rate. After that date, gains are split — earlier gains still get the discount, later gains use indexation. The calculator estimates this split based on your purchase year and expected FIRE year.</li>
+          <li><strong>Post-budget assets</strong> (acquired after 12 May 2026): the full gain is taxable, but your original cost base is indexed for inflation. You pay tax only on the <em>real</em> gain above that, at your marginal rate with a minimum of 30%.</li>
+        </ul>
+        <p>The calculator grosses up your annual withdrawal to cover both your expenses and the CGT owed on that withdrawal. Your FIRE Number is then the portfolio size where 4% covers this grossed-up withdrawal. The "Without tax" line on the FIRE Number card shows the pre-tax comparison.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>What is the "cost base ratio" and how do I set it? <span class="faq-tag">2026 Budget</span></summary>
+        <p>The cost base ratio is the percentage of your portfolio's current value that represents money you originally invested — as opposed to capital growth. For example, if you invested $400,000 and your portfolio is now worth $1,000,000, your cost base ratio is 40%.</p>
+        <p>A lower cost base ratio means a higher proportion of each dollar you sell is a taxable gain, so CGT has a bigger impact on your FIRE Number. A ratio of 100% means no gain at all — the FIRE Number will match the pre-tax figure.</p>
+        <p>If you are unsure, 40–60% is a reasonable estimate for a portfolio that has been growing for 5–10 years at typical market returns.</p>
+      </details>
     </div>
   </section>
 
@@ -278,6 +380,8 @@
   </footer>
 
   <script src="utils.js"></script>
+  <script src="calc/tax.js"></script>
+  <script src="calc/cgt.js"></script>
   <script src="calc/fire.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>

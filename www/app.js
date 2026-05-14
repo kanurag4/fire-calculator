@@ -14,6 +14,12 @@ const els = {
   inflation:            $('inflation'),
   swr:                  $('swr'),
   dividendYield:        $('dividendYield'),
+  incomeRetirement:     $('incomeRetirement'),
+  taxRateOverride:      $('taxRateOverride'),
+  assetAcquisition:     $('assetAcquisition'),
+  purchaseYear:         $('purchaseYear'),
+  purchaseYearRow:      $('purchaseYearRow'),
+  costBaseRatio:        $('costBaseRatio'),
   summaryCards:         $('summaryCards'),
   fireTypeBody:         $('fireTypeBody'),
   yearTableBody:        $('yearTableBody'),
@@ -23,6 +29,9 @@ const els = {
   fireNumberDerived:    $('fireNumberDerived'),
   rentalDerived:        $('rentalDerived'),
   realReturnDerived:    $('realReturnDerived'),
+  taxRateDerived:       $('taxRateDerived'),
+  cgtDerived:           $('cgtDerived'),
+  resetBtn:             $('resetBtn'),
 };
 
 const STORAGE_KEY = 'kv_fire_inputs';
@@ -39,6 +48,11 @@ const DEFAULTS = {
   inflation:          2.5,
   swr:                4,
   dividendYield:      4,
+  incomeRetirement:   '60,000',
+  taxRateOverride:    '',
+  assetAcquisition:   'pre-budget',
+  purchaseYear:       2020,
+  costBaseRatio:      40,
 };
 
 let fireChart = null;
@@ -47,6 +61,7 @@ let debounceTimer = null;
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 loadFromStorage();
+updatePurchaseYearVisibility();
 updateDerivedDisplays();
 bindEvents();
 renderResults();
@@ -66,6 +81,11 @@ function saveToStorage() {
     inflation:          els.inflation.value,
     swr:                els.swr.value,
     dividendYield:      els.dividendYield.value,
+    incomeRetirement:   els.incomeRetirement.value,
+    taxRateOverride:    els.taxRateOverride.value,
+    assetAcquisition:   els.assetAcquisition.value,
+    purchaseYear:       els.purchaseYear.value,
+    costBaseRatio:      els.costBaseRatio.value,
   }));
 }
 
@@ -87,12 +107,17 @@ function loadFromStorage() {
   els.inflation.value          = d.inflation;
   els.swr.value                = d.swr;
   els.dividendYield.value      = d.dividendYield;
+  els.incomeRetirement.value   = d.incomeRetirement;
+  els.taxRateOverride.value    = d.taxRateOverride;
+  els.assetAcquisition.value   = d.assetAcquisition;
+  els.purchaseYear.value       = d.purchaseYear;
+  els.costBaseRatio.value      = d.costBaseRatio;
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  [els.liquidPortfolio, els.superBalance, els.superContributions, els.expenses, els.rentalIncome, els.savings].forEach(el => {
+  [els.liquidPortfolio, els.superBalance, els.superContributions, els.expenses, els.rentalIncome, els.savings, els.incomeRetirement].forEach(el => {
     el.addEventListener('input', () => {
       formatMoneyInput(el);
       saveToStorage();
@@ -101,7 +126,7 @@ function bindEvents() {
     });
   });
 
-  [els.age, els.returnRate, els.inflation, els.swr, els.dividendYield].forEach(el => {
+  [els.age, els.returnRate, els.inflation, els.swr, els.dividendYield, els.taxRateOverride, els.purchaseYear, els.costBaseRatio].forEach(el => {
     el.addEventListener('input', () => {
       saveToStorage();
       updateDerivedDisplays();
@@ -109,11 +134,32 @@ function bindEvents() {
     });
   });
 
+  els.assetAcquisition.addEventListener('change', () => {
+    updatePurchaseYearVisibility();
+    saveToStorage();
+    updateDerivedDisplays();
+    scheduleRender();
+  });
+
   els.sensitivityToggle.addEventListener('change', renderResults);
 
   els.yearDetails.addEventListener('toggle', () => {
     if (fireChart) fireChart.resize();
   });
+
+  els.resetBtn.addEventListener('click', resetToDefaults);
+}
+
+function updatePurchaseYearVisibility() {
+  els.purchaseYearRow.style.display = els.assetAcquisition.value === 'pre-budget' ? '' : 'none';
+}
+
+function resetToDefaults() {
+  localStorage.removeItem(STORAGE_KEY);
+  loadFromStorage();
+  updatePurchaseYearVisibility();
+  updateDerivedDisplays();
+  scheduleRender();
 }
 
 function scheduleRender() {
@@ -154,6 +200,51 @@ function updateDerivedDisplays() {
   // Real return
   const realReturn = ((1 + ret) / (1 + inf) - 1) * 100;
   els.realReturnDerived.textContent = `Real return: ${realReturn.toFixed(2)}% p.a.`;
+
+  // Tax rate
+  const incomeRetirement = parseMoney(els.incomeRetirement);
+  const taxOverrideRaw = parseFloat(els.taxRateOverride.value);
+  const isManual = isFinite(taxOverrideRaw) && els.taxRateOverride.value !== '';
+  const autoRate = marginalRate(incomeRetirement);
+  const incomeTaxRate = isManual ? taxOverrideRaw / 100 : autoRate;
+  const taxRatePct = (incomeTaxRate * 100).toFixed(1);
+  els.taxRateOverride.placeholder = (autoRate * 100).toFixed(1);
+  els.taxRateDerived.textContent = `Marginal rate: ${taxRatePct}% ${isManual ? '(manual)' : '(auto)'}`;
+
+  // CGT
+  if (effective > 0 && swr > 0) {
+    // Do a quick estimate of yearsToFire for CGT display
+    const inputs = getInputs();
+    const tempRows = computeFireProjection(inputs);
+    const approxYearsToFire = tempRows.length > 0 ? tempRows[tempRows.length - 1].year : 20;
+    const fireYear = new Date().getFullYear() + approxYearsToFire;
+
+    const assetAcquisition = els.assetAcquisition.value;
+    const costBaseRatio = (parseInt(els.costBaseRatio.value) || 40) / 100;
+    const purchaseYear = parseInt(els.purchaseYear.value) || 2020;
+
+    const cgtPerDollar = assetAcquisition === 'pre-budget'
+      ? calcCGTPreBudget({
+          marginalRate: incomeTaxRate,
+          costBaseRatio,
+          purchaseYear,
+          fireYear,
+          investmentReturn: inputs.investmentReturn,
+          inflation: inputs.inflation
+        })
+      : calcCGTPostBudget({
+          marginalRate: incomeTaxRate,
+          costBaseRatio,
+          yearsToFire: approxYearsToFire,
+          inflation: inputs.inflation
+        });
+
+    const cgtPct = (cgtPerDollar * 100).toFixed(1);
+    const grossUpFactor = cgtPerDollar > 0 ? (1 / (1 - cgtPerDollar)).toFixed(3) : 1;
+    els.cgtDerived.textContent = `CGT per $1 sold: ${cgtPct}% → need ${(grossUpFactor * 100 - 100).toFixed(1)}% more to cover tax`;
+  } else {
+    els.cgtDerived.textContent = '';
+  }
 }
 
 // ── Input reading ─────────────────────────────────────────────────────────────
@@ -164,6 +255,16 @@ function getInputs() {
   const grossExpenses = parseMoney(els.expenses);
   const rentalIncome  = parseMoney(els.rentalIncome);
   const effective     = Math.max(0, grossExpenses - rentalIncome);
+
+  // Tax rate calculation
+  const incomeRetirement = parseMoney(els.incomeRetirement);
+  const taxOverrideRaw = parseFloat(els.taxRateOverride.value);
+  const incomeTaxRate = (isFinite(taxOverrideRaw) && els.taxRateOverride.value !== '')
+    ? taxOverrideRaw / 100
+    : marginalRate(incomeRetirement);
+
+  // CGT calculation (will be computed in renderResults for now)
+  // We'll pass the tax inputs and let renderResults compute the tax adjustment
 
   return {
     currentPortfolio: liquid + superBal,
@@ -179,6 +280,10 @@ function getInputs() {
     swr:              parseFloat(els.swr.value) / 100 || 0.04,
     dividendYield:    parseFloat(els.dividendYield.value) / 100 || 0,
     currentAge:       parseInt(els.age.value, 10) || 30,
+    incomeTaxRate,
+    assetAcquisition: els.assetAcquisition.value,
+    costBaseRatio:    (parseInt(els.costBaseRatio.value) || 40) / 100,
+    purchaseYear:     parseInt(els.purchaseYear.value) || 2020,
   };
 }
 
@@ -186,25 +291,55 @@ function getInputs() {
 
 function renderResults() {
   const inputs  = getInputs();
-  const rows    = computeFireProjection(inputs);
+
+  // Compute tax-adjusted withdrawal
+  // First pass: untaxed projection to estimate yearsToFire
+  const untaxedInputs = { ...inputs, annualExpenses: inputs.annualExpenses };
+  const untaxedRows = computeFireProjection(untaxedInputs);
+  const approxYearsToFire = untaxedRows.length > 0 ? untaxedRows[untaxedRows.length - 1].year : 20;
+  const fireYear = new Date().getFullYear() + approxYearsToFire;
+
+  // Calculate CGT per dollar
+  const cgtPerDollar = inputs.assetAcquisition === 'pre-budget'
+    ? calcCGTPreBudget({
+        marginalRate: inputs.incomeTaxRate,
+        costBaseRatio: inputs.costBaseRatio,
+        purchaseYear: inputs.purchaseYear,
+        fireYear,
+        investmentReturn: inputs.investmentReturn,
+        inflation: inputs.inflation
+      })
+    : calcCGTPostBudget({
+        marginalRate: inputs.incomeTaxRate,
+        costBaseRatio: inputs.costBaseRatio,
+        yearsToFire: approxYearsToFire,
+        inflation: inputs.inflation
+      });
+
+  // Gross up the withdrawal for taxes
+  const grossWithdrawal = grossUpWithdrawal(inputs.annualExpenses, cgtPerDollar);
+
+  // Second pass: taxed projection using gross withdrawal
+  const taxedInputs = { ...inputs, annualExpenses: grossWithdrawal };
+  const rows    = computeFireProjection(taxedInputs);
   const fireRow = rows.find(r => r.fireReached) || null;
 
-  const todayFireNumber = inputs.swr > 0 ? inputs.annualExpenses / inputs.swr : 0;
+  const todayFireNumber = inputs.swr > 0 ? grossWithdrawal / inputs.swr : 0;
   const coast = coastFireNumber(
-    inputs.annualExpenses, inputs.swr, inputs.investmentReturn,
+    grossWithdrawal, inputs.swr, inputs.investmentReturn,
     inputs.inflation, inputs.currentAge
   );
 
-  renderCards(inputs, fireRow, todayFireNumber, coast);
-  renderFireTypeTable(inputs);
-  renderChart(inputs, rows);
+  renderCards(inputs, fireRow, todayFireNumber, coast, inputs.annualExpenses, grossWithdrawal, cgtPerDollar);
+  renderFireTypeTable(taxedInputs);
+  renderChart(taxedInputs, rows);
   renderYearTable(rows);
 }
 
 // ── Summary cards ─────────────────────────────────────────────────────────────
 
-function renderCards(inputs, fireRow, fireNumber, coastFire) {
-  const dividendTarget = inputs.dividendYield > 0 ? inputs.annualExpenses / inputs.dividendYield : Infinity;
+function renderCards(inputs, fireRow, fireNumber, coastFire, netExpenses, grossWithdrawal, cgtPerDollar) {
+  const dividendTarget = inputs.dividendYield > 0 ? netExpenses / inputs.dividendYield : Infinity;
 
   const yearsToFire = fireRow ? fireRow.year : null;
   const fireAge     = fireRow ? fireRow.age  : null;
@@ -226,11 +361,23 @@ function renderCards(inputs, fireRow, fireNumber, coastFire) {
     ? ` after ${formatCurrency(inputs.rentalIncome)}/yr rental`
     : '';
 
+  // Tax adjustment note
+  const taxAdjustNote = cgtPerDollar > 0
+    ? `Tax-adjusted (${(inputs.incomeTaxRate * 100).toFixed(0)}% income tax, ${(cgtPerDollar * 100).toFixed(1)}% CGT)`
+    : '';
+
+  const untaxedFireNumber = inputs.swr > 0 ? netExpenses / inputs.swr : 0;
+  const taxAdjustmentAmount = fireNumber - untaxedFireNumber;
+
   els.summaryCards.innerHTML = `
     <div class="card summary-card">
       <div class="card-label">FIRE Number</div>
       <div class="card-value">${formatCurrency(fireNumber)}</div>
-      <div class="card-sub">${(inputs.swr * 100).toFixed(1)}% SWR · ${formatCurrency(inputs.annualExpenses)}/yr drawdown${rentalNote}</div>
+      <div class="card-sub">${taxAdjustNote}</div>
+      <div class="card-sub" style="margin-top: 4px; color: #94a3b8; font-size: 0.85rem;">
+        ${formatCurrency(netExpenses)}/yr net → ${formatCurrency(grossWithdrawal)}/yr gross ·
+        Without tax: ${formatCurrency(untaxedFireNumber)}
+      </div>
     </div>
     <div class="card summary-card ${yearsClass}">
       <div class="card-label">Years to FIRE</div>
@@ -250,7 +397,7 @@ function renderCards(inputs, fireRow, fireNumber, coastFire) {
     <div class="card summary-card">
       <div class="card-label">Dividend Target <span class="tip" data-tip="The portfolio needed to generate your annual expenses entirely from dividends — without ever selling shares. Based on your dividend yield assumption. Lower yield = larger target; higher yield = smaller but riskier.">?</span></div>
       <div class="card-value">${isFinite(dividendTarget) ? formatCurrency(dividendTarget) : '—'}</div>
-      <div class="card-sub">at ${(inputs.dividendYield * 100).toFixed(1)}% yield → ${formatCurrency(inputs.annualExpenses)}/yr income</div>
+      <div class="card-sub">at ${(inputs.dividendYield * 100).toFixed(1)}% yield → ${formatCurrency(netExpenses)}/yr income</div>
     </div>
   `;
 }

@@ -1,6 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { computeFireProjection, coastFireNumber, fireTypeBreakdown } = require('../www/calc/fire.js');
+const { marginalRate } = require('../www/calc/tax.js');
+const { calcCGTPreBudget, calcCGTPostBudget, grossUpWithdrawal } = require('../www/calc/cgt.js');
 
 const near = (actual, expected, tol, msg) =>
   assert.ok(
@@ -203,4 +205,131 @@ test('fireTypeBreakdown lean FIRE reached before fat FIRE', () => {
   if (fat.yearsToFire !== null) {
     assert.ok(lean.yearsToFire < fat.yearsToFire, 'Lean reached before Fat');
   }
+});
+
+// ── marginalRate (tax brackets) ──────────────────────────────────────────────
+
+test('marginalRate returns 0 below threshold', () => {
+  assert.equal(marginalRate(0), 0);
+  assert.equal(marginalRate(18200), 0);
+});
+
+test('marginalRate returns correct rates for 2026-27 brackets', () => {
+  near(marginalRate(30000), 0.17, 0.001, 'Income $30k = 17% rate');
+  near(marginalRate(80000), 0.32, 0.001, 'Income $80k = 32% rate');
+  near(marginalRate(150000), 0.39, 0.001, 'Income $150k = 39% rate');
+  near(marginalRate(200000), 0.47, 0.001, 'Income $200k = 47% rate');
+});
+
+test('marginalRate handles null/invalid input safely', () => {
+  assert.equal(marginalRate(null), 0);
+  assert.equal(marginalRate(undefined), 0);
+  assert.equal(marginalRate(NaN), 0);
+  assert.equal(marginalRate(Infinity), 0);  // Non-finite values return 0
+});
+
+// ── grossUpWithdrawal ────────────────────────────────────────────────────────
+
+test('grossUpWithdrawal with zero CGT returns original amount', () => {
+  near(grossUpWithdrawal(60000, 0), 60000, 1, 'Zero CGT');
+});
+
+test('grossUpWithdrawal correctly grosses up for tax', () => {
+  near(grossUpWithdrawal(60000, 0.10), 66666.67, 1, '10% tax requires 11.1% gross-up');
+  near(grossUpWithdrawal(60000, 0.20), 75000, 1, '20% tax requires 25% gross-up');
+});
+
+test('grossUpWithdrawal handles high tax rates', () => {
+  near(grossUpWithdrawal(60000, 0.47), 113207.55, 10, '47% tax requires 113% gross-up');
+});
+
+// ── calcCGTPostBudget ────────────────────────────────────────────────────────
+
+test('calcCGTPostBudget returns 0 when cost base ratio is 100% (no gain)', () => {
+  const result = calcCGTPostBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 1.0,
+    yearsToFire: 20,
+    inflation: 0.025
+  });
+  near(result, 0, 0.001, 'No gain = no CGT');
+});
+
+test('calcCGTPostBudget applies inflation indexation', () => {
+  const result = calcCGTPostBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 0.40,  // 60% gain
+    yearsToFire: 20,
+    inflation: 0.025
+  });
+  assert.ok(result > 0, 'Should have some tax');
+  assert.ok(result < 0.60 * 0.32, 'Inflation reduces taxable gain');
+});
+
+test('calcCGTPostBudget uses 30% floor when marginal rate is lower', () => {
+  const result = calcCGTPostBudget({
+    marginalRate: 0.17,  // Below 30% floor
+    costBaseRatio: 0.50,
+    yearsToFire: 10,
+    inflation: 0.025
+  });
+  // Inflation reduces indexed gain: indexedBase = 0.50 * (1.025^10) ≈ 0.64
+  // indexedGain = max(1.0 - 0.64, 0) ≈ 0.36
+  // CGT = 0.36 * max(0.30, 0.17) = 0.36 * 0.30 ≈ 0.108
+  near(result, 0.108, 0.01, 'Should apply 30% floor to indexed gain');
+});
+
+// ── calcCGTPreBudget ─────────────────────────────────────────────────────────
+
+test('calcCGTPreBudget returns 0 when cost base ratio is 100%', () => {
+  const result = calcCGTPreBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 1.0,
+    purchaseYear: 2015,
+    fireYear: 2035,
+    investmentReturn: 0.07,
+    inflation: 0.025
+  });
+  near(result, 0, 0.001, 'No gain = no CGT');
+});
+
+test('calcCGTPreBudget FIRE before transition uses 50% discount fully', () => {
+  const result = calcCGTPreBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 0.40,
+    purchaseYear: 2015,
+    fireYear: 2026,  // Before 1 July 2027 transition
+    investmentReturn: 0.07,
+    inflation: 0.025
+  });
+  // All gain uses 50% discount: 0.60 * 0.5 * 0.32 = 0.096
+  near(result, 0.096, 0.001, 'Full 50% discount before transition');
+});
+
+test('calcCGTPreBudget FIRE after transition splits gain at 1 July 2027', () => {
+  const result = calcCGTPreBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 0.40,
+    purchaseYear: 2015,
+    fireYear: 2035,  // After transition
+    investmentReturn: 0.07,
+    inflation: 0.025
+  });
+  assert.ok(result > 0, 'Should have CGT');
+  // Pre-transition: 50% discount, Post-transition: indexation at 30%+
+  // Result should be between pure 50% discount (0.096) and full indexation (0.18)
+  assert.ok(result < 0.60 * 0.32, 'Less than full marginal rate');
+});
+
+test('calcCGTPreBudget handles recent purchase year (small pre-transition gain)', () => {
+  const result = calcCGTPreBudget({
+    marginalRate: 0.32,
+    costBaseRatio: 0.40,
+    purchaseYear: 2025,  // Recent purchase
+    fireYear: 2035,
+    investmentReturn: 0.07,
+    inflation: 0.025
+  });
+  assert.ok(result > 0.096, 'Should be more than pre-discount only');
+  assert.ok(result < 0.60 * 0.32, 'Still less than full rate');
 });
